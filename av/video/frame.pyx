@@ -304,23 +304,15 @@ cdef class VideoFrame(Frame):
 
         """
         from PIL import Image
-        cdef VideoPlane plane = self.reformat(format="rgb24", **kwargs).planes[0]
 
-        cdef const uint8_t[:] i_buf = plane
-        cdef size_t i_pos = 0
-        cdef size_t i_stride = plane.line_size
+        cdef VideoFrame frame = self.reformat(format="rgb24", **kwargs)
+        cdef const uint8_t[:, :] plane_view = frame.planes[0]
 
-        cdef size_t o_pos = 0
-        cdef size_t o_stride = plane.width * 3
-        cdef size_t o_size = plane.height * o_stride
-        cdef bytearray o_buf = bytearray(o_size)
+        cdef bytearray img_data = bytearray(frame.height * frame.width * 3)
+        cdef uint8_t[:, :] img_view = memoryview(img_data).cast('B', shape=(frame.height, frame.width * 3))
 
-        while o_pos < o_size:
-            o_buf[o_pos:o_pos + o_stride] = i_buf[i_pos:i_pos + o_stride]
-            i_pos += i_stride
-            o_pos += o_stride
-
-        return Image.frombytes("RGB", (self.width, self.height), bytes(o_buf), "raw", "RGB", 0, 1)
+        img_view[:, :] = plane_view[:, :]
+        return Image.frombytes("RGB", (self.width, self.height), img_view, "raw", "RGB", 0, 1)
 
     def to_ndarray(self, **kwargs):
         """
@@ -380,22 +372,12 @@ cdef class VideoFrame(Frame):
             img = img.convert('RGB')
 
         cdef VideoFrame frame = VideoFrame(img.size[0], img.size[1], 'rgb24')
+        cdef uint8_t[:, :] plane_view = frame.planes[0]
 
-        cdef bytes imgbytes = img.tobytes()
-        cdef const uint8_t[:] i_buf = imgbytes
-        cdef size_t i_pos = 0
-        cdef size_t i_stride = img.size[0] * 3
-        cdef size_t i_size = img.size[1] * i_stride
+        cdef bytes img_data = img.tobytes()
+        cdef const uint8_t[:, :] img_view = memoryview(img_data).cast('B', shape=(frame.height, frame.width * 3))
 
-        cdef uint8_t[:] o_buf = frame.planes[0]
-        cdef size_t o_pos = 0
-        cdef size_t o_stride = frame.planes[0].line_size
-
-        while i_pos < i_size:
-            o_buf[o_pos:o_pos + i_stride] = i_buf[i_pos:i_pos + i_stride]
-            i_pos += i_stride
-            o_pos += o_stride
-
+        plane_view[:, :] = img_view[:, :]
         return frame
 
     @staticmethod

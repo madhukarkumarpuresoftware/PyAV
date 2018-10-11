@@ -92,13 +92,14 @@ class TestVideoFrameBuffers(TestCase):
         frame = VideoFrame(640, 480, 'rgb24')
         frame.planes[0].update(b'01234' + (b'x' * (640 * 480 * 3 - 5)))
         mem = memoryview(frame.planes[0])
-        self.assertEqual(mem.ndim, 1)
-        self.assertEqual(mem.shape, (640 * 480 * 3, ))
+        self.assertEqual(mem.ndim, 2)
+        self.assertEqual(mem.shape, (480, 640 * 3))
+        self.assertEqual(mem.strides, (1920, 1))
         self.assertFalse(mem.readonly)
-        self.assertEqual(mem[1], 49 if is_py3 else b'1')
-        self.assertEqual(mem[:7], b'01234xx')
-        mem[1] = 46 if is_py3 else b'.'
-        self.assertEqual(mem[:7], b'0.234xx')
+        self.assertEqual(mem[0,1], 49 if is_py3 else b'1')
+        self.assertEqual(mem.tobytes()[0:7], b'01234xx')
+        mem[0,1] = 46 if is_py3 else b'.'
+        self.assertEqual(mem.tobytes()[0:7], b'0.234xx')
 
 
 class TestVideoFrameImage(TestCase):

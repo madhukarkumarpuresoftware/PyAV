@@ -88,6 +88,19 @@ class TestCodecContext(TestCase):
             ctx.extradata = b"123"
         self.assertEqual(str(cm.exception), "Can only set extradata for decoders.")
 
+    def test_encoder_pix_fmt(self):
+        ctx = av.codec.Codec('h264', 'w').create()
+
+        # valid format
+        ctx.pix_fmt = "yuv420p"
+        self.assertEqual(ctx.pix_fmt, "yuv420p")
+
+        # invalid format
+        with self.assertRaises(ValueError) as cm:
+            ctx.pix_fmt = "bogus"
+        self.assertEqual(str(cm.exception), "not a pixel format: 'bogus'")
+        self.assertEqual(ctx.pix_fmt, "yuv420p")
+
     def test_parse(self):
 
         # This one parses into a single packet.

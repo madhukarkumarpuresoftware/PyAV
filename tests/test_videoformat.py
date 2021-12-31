@@ -4,6 +4,10 @@ from .common import TestCase
 
 
 class TestVideoFormats(TestCase):
+    def test_invalid_pixel_format(self):
+        with self.assertRaises(ValueError) as cm:
+            VideoFormat('bogus', 640, 480)
+        self.assertEqual(str(cm.exception), "not a pixel format: 'bogus'")
 
     def test_rgb24_inspection(self):
         fmt = VideoFormat('rgb24', 640, 480)

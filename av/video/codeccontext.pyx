@@ -98,8 +98,12 @@ cdef class VideoCodecContext(CodecContext):
         def __get__(self):
             return self._format.name
 
-        def __set__(self, value):
-            self.ptr.pix_fmt = lib.av_get_pix_fmt(value)
+        def __set__(self, name):
+            cdef lib.AVPixelFormat pix_fmt = lib.av_get_pix_fmt(name)
+            if pix_fmt < 0:
+                raise ValueError('not a pixel format: %r' % name)
+
+            self.ptr.pix_fmt = pix_fmt
             self._build_format()
 
     property framerate:

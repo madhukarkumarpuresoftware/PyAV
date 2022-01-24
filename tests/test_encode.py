@@ -14,7 +14,7 @@ from .common import Image, TestCase, fate_suite
 
 WIDTH = 320
 HEIGHT = 240
-DURATION = 48
+FRAMES = 48
 
 
 def write_rgb_rotate(output):
@@ -30,13 +30,13 @@ def write_rgb_rotate(output):
     stream.height = HEIGHT
     stream.pix_fmt = "yuv420p"
 
-    for frame_i in range(DURATION):
+    for frame_i in range(FRAMES):
 
         frame = VideoFrame(WIDTH, HEIGHT, 'rgb24')
         image = Image.new('RGB', (WIDTH, HEIGHT), (
-            int(255 * (0.5 + 0.5 * math.sin(frame_i / DURATION * 2 * math.pi))),
-            int(255 * (0.5 + 0.5 * math.sin(frame_i / DURATION * 2 * math.pi + 2 / 3 * math.pi))),
-            int(255 * (0.5 + 0.5 * math.sin(frame_i / DURATION * 2 * math.pi + 4 / 3 * math.pi))),
+            int(255 * (0.5 + 0.5 * math.sin(frame_i / FRAMES * 2 * math.pi))),
+            int(255 * (0.5 + 0.5 * math.sin(frame_i / FRAMES * 2 * math.pi + 2 / 3 * math.pi))),
+            int(255 * (0.5 + 0.5 * math.sin(frame_i / FRAMES * 2 * math.pi + 4 / 3 * math.pi))),
         ))
         frame.planes[0].update(image.tobytes())
 
@@ -60,8 +60,13 @@ def assert_rgb_rotate(self, input_):
     self.assertIsInstance(stream, VideoStream)
     self.assertEqual(stream.type, 'video')
     self.assertEqual(stream.name, 'mpeg4')
-    self.assertEqual(stream.average_rate, 24)  # Only because we constructed is precisely.
-    self.assertEqual(stream.rate, Fraction(24, 1))
+    self.assertEqual(stream.frames, FRAMES)
+    # Depending on the FFmpeg version the `average_rate` seems to differ:
+    # - FFmpeg 4.4 reports Fraction(1152, 47)
+    # - Ffmpeg < 4.4 reports exactly 24
+    self.assertGreaterEqual(stream.average_rate, 24)
+    self.assertLess(stream.average_rate, 25)
+    self.assertEqual(stream.rate, stream.average_rate)
     self.assertEqual(stream.time_base * stream.duration, 2)
     self.assertEqual(stream.format.name, 'yuv420p')
     self.assertEqual(stream.format.width, WIDTH)
@@ -88,7 +93,7 @@ class TestBasicVideoEncoding(TestCase):
         stream.height = HEIGHT
         stream.pix_fmt = "yuv420p"
 
-        for i in range(DURATION):
+        for i in range(FRAMES):
             frame = VideoFrame(WIDTH, HEIGHT, 'rgb24')
             frame.pts = i * 2000
             frame.time_base = Fraction(1, 48000)
